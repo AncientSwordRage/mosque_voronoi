@@ -44,4 +44,14 @@ class Command(BaseCommand):
     def extract_mosque(self, mosque, page):
         """Extract Mosque."""
         mosque_text = re.sub(u"(\u2018|\u2019)", "'", mosque.text)
+        mosque_link = mosque.get('href')
         self.stdout.write('\nWriting {} to file, from page {}'.format(mosque_text, page))
+        mosque_page = bs4(requests.get(mosque_link).content)
+        mosque_info_rows = mosque_page.select('#mosque_info_contents table table tr')
+        values = {cells[0].replace(':').lowercase(): cells[1]
+                  for row in mosque_info_rows
+                  for cells in row.find_all('td')}
+        name_address = mosque_page.select('#results h1:first-of-type')
+        matches = re.match(r'(?P<name>[^(]*)\((?P<address>[^)]*)\))', name_address)
+        values['name'] = matches.group('name')
+        values['rating'] = mosque_page.select('.star_rating strong')
